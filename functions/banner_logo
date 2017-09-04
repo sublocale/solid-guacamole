@@ -1,0 +1,21 @@
+banner() {
+# Cheesy banner logo for reuse    
+
+    local RED="\e[31m"    # RED Colour for terminal
+    local CYAN="\e[36m"   # CYAN Colour for terminal
+
+    echo 
+    echo -e "${RED}+-----------------------------------------------------------+${NC}${CYAN}";
+    echo "             ___.   .__                        .__           ";
+    echo "   ________ _\_ |__ |  |   ____   ____  _____  |  |  ____    ";
+    echo "  /  ___/  |  \ __ \|  |  /  _ \_/ ___\ \__  \ |  |_/ __ \   ";
+    echo "  \___ \|  |  / \_\ \  |_(  <_> )  \___ /  __ \|  |_\ ___/   ";
+    echo " /____  >____/|___  /____/\____/ \___  >____  /_____/\___ >  ";
+    echo "      \/          \/                 \/     \/           \/  ";
+    echo "                                                             ";
+    echo -e "  ${NC}${RED}Version:${NC} ${CYAN}$version${NC} ${RED}-${NC} ${CYAN}$purpose${NC}                               ";
+    echo "                                                             ";
+    echo -e "${RED}+-----------------------------------------------------------+${NC}";
+    echo
+
+}
