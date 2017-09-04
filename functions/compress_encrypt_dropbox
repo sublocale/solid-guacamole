@@ -1,0 +1,63 @@
+encryptGPG() {
+# Compress all files, encrypt them with GPG, move them to dropbox
+# and delete them if you dare.
+
+        local gpgID="XXXXXXX"        # GPG id for backup and encryption
+
+        move2dbox() {
+        # move all .gpg files in the current working directory to dropbox
+            
+            echo 
+            for FILES in *.gpg; do
+                mv -v ${FILES} ${HOME}/Dropbox/Documents/
+            done
+            echo
+            echo -e "--> Done moving files to Dropbox..."
+        }
+
+        # Remove spaces from filenames before adding prefix date & description
+        clear
+        
+        echo
+        for f in *\ *; do 
+            mv "${f}" "${f// /_}"; 
+        done
+        echo
+        echo -e "--> Done removing spaces from file names..."
+
+        # Compress individual files only, no directories
+        for i in *; do 
+            tar -czf $i.tar.gz $i
+        done
+        echo -e "--> Done compressing files before encrypting..."
+        echo
+
+        # Encrypyt with our Key
+        for i in *.tar.gz ; do
+            gpg --encrypt --recipient ${gpgID} $i
+        done
+        echo
+        echo "--> Done encrypting files..."    
+
+        # Offer to move to dropbox
+        read -p "--> Move newly encrypted files to Dropbox? (y/n)  "  
+        if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+            move2dbox
+        fi
+
+        # Cleanup newly created compressed files, check first...
+        read -p "--> Delete newly created tar.gz files? (y/n) --> " REPLY
+
+        if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+            echo
+            rm -v *.tar.gz
+            echo
+            echo "--> Done deleting newly created tar.gz files"
+        fi
+
+        # Let's confirm we are done...
+        echo "--> Done renaming, compressing, encrypting, and moving files to Dropbox."
+        echo "--> Go ahead and delete the originals if your dare!"
+        echo
+
+}
