@@ -14,8 +14,8 @@ If some of these functions seem really simple it's because they are. When I writ
 
 ### Contributing
 
-Fork the project
-Send a pull request
++ Fork the project
++ Send a pull request
 
 ### Licence
 
