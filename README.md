@@ -12,6 +12,11 @@ Please take note, I am not a programmer and mostly bandaid others good work toge
 
 If some of these functions seem really simple it's because they are. When I write a shell script or latex document and get the desired behaviour I may not write another for six months. By that time I have forgotten even the simplest of things.
 
+### Contributing
+
+Fork the project
+Send a pull request
+
 ### Licence
 
 Solid-Guacamole is released under the [MIT license](LICENSE.txt). 
