@@ -10,6 +10,8 @@ make it thru.
 
 This script will setup iptables to do the following;
 
+- allow internal Amazon network and create a [LOCAL-TRAFFIC] tag for log review
+  - limit logging for local traffic to stop log filling up
 - load blacklists and create a [BLACKLIST] tag for log review
 - load whitelists and create a [WHITELIST] tag for log review
   - limit logging for whitelisted IP's to stop log from filling up syslog
@@ -17,7 +19,8 @@ This script will setup iptables to do the following;
 - integrate with fail2ban to DROP blacklisted IP's prior to jail review
   - log all other traffic with [NETFILTER] tag for log review with sane logging
   frequency
-  - rate limit any connections that survive fail2ban review
+  - rate limit any connections that survive fail2ban review, create [RATE-LIMIT]
+    tag for log review
 - allow VPN access resulting from https://github.com/hwdsl2/setup-ipsec-vpn
 
 If you recognize any code and there is no attribution please feel free to add it in. I have tried to acknowledge all code but in many cases I was on a google hunt to solve issues and neglected to note sources.
