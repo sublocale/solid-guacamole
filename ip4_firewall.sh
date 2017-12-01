@@ -22,13 +22,23 @@ echo "|   __|___| |_|_| |  |   __|_ _ ___ ___ ___ _____ ___| |___ ";
 echo "|__   | . | | | . |  |  |  | | | .'|  _| .'|     | . | | -_|";
 echo "|_____|___|_|_|___|  |_____|___|__,|___|__,|_|_|_|___|_|___|";
 echo "                                                            ";
-echo " -----------------"
-echo "[ NETFILTER       ]"
-echo " -----------------"
-echo
 echo "Script to load our own custom iptables rules"
 
 #
+echo
+echo " -----------------"
+echo "[ CLEAN HOUSE     ]"
+echo " -----------------"
+echo
+#
+
+echo "flush all rules and delete all chains..."
+$ipt4 -F
+$ipt4 -X
+
+echo "zero out all counters..."
+$ipt4 -Z
+
 ## Update and load ipset lists
 ## Blacklist and Whitelist updated daily via a CRON job
 ##
@@ -58,20 +68,10 @@ echo
 echo "allowing whitelist ip's..."
 $ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
 
-#
-echo
 echo " -----------------"
-echo "[ CLEAN HOUSE     ]"
+echo "[ NETFILTER       ]"
 echo " -----------------"
 echo
-#
-
-echo "flush all rules and delete all chains..."
-$ipt4 -F
-$ipt4 -X
-
-echo "zero out all counters..."
-$ipt4 -Z
 
 echo "set defaut policy to ACCEPT (under review)..."
 $ipt4 -P INPUT ACCEPT
