@@ -19,10 +19,6 @@ echo "|   __|___| |_|_| |  |   __|_ _ ___ ___ ___ _____ ___| |___ ";
 echo "|__   | . | | | . |  |  |  | | | .'|  _| .'|     | . | | -_|";
 echo "|_____|___|_|_|___|  |_____|___|__,|___|__,|_|_|_|___|_|___|";
 echo "                                                            ";
-echo "-------------"
-echo "NETFILTER"
-echo "-------------"
-echo
 echo "Script to load our own custom iptables rules"
 
 #
@@ -44,6 +40,14 @@ echo "sending blacklist ip's to oblivion"
 $ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 
 #
+echo
+echo "-------------"
+echo "WHITELIST"
+echo "-------------"
+echo
+#
+
+#
 ## Load ipset whitelist. To be moved out of here and run like the blacklist.
 ## Once loaded the ruleset will be loaded later into the AUTH-TRAFFIC chain.
 #
@@ -51,17 +55,11 @@ $ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 echo "allowing whitelist ip's..."
 $ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
 
-#$ipset create whitelist hash:net
-#$ipset flush whitelist
 #
-#$ipset add whitelist   50.68.250.0/24	# Home Shaw Network
-#$ipset add whitelist   50.68.242.0/24	# Home Shaw Network
-#$ipset add whitelist    96.49.62.0/24	# Office
-#$ipset add whitelist  173.244.44.0/24	# PIA Seattle
-#$ipset add whitelist 209.139.192.0/18	# BC Childrens Hospital
-
-#
-##
+echo "-------------"
+echo "NETFILTER"
+echo "-------------"
+echo
 #
 
 echo "flush all rules and delete all chains..."
