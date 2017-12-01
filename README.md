@@ -41,6 +41,20 @@ Please take note, I am not a programmer and mostly bandaid others good work toge
 - ipset-whitelist - https://github.com/sublocale/ipset-whitelist
 - fail2ban - https://www.fail2ban.org/wiki/index.php/Main_Page
 
+### Quickstart
+```
+wget -O /usr/local/sbin/ip4_firewall.sh https://raw.githubusercontent.com/sublocale/solid-guacamole/master/ip4_firewall.sh
+chmod +x /usr/local/sbin/ip4_firewall.sh
+```
+#### Check log
+```
+tail -f /var/log/syslog | awk '
+  /NETFILTER/ {print "\033[33m" $0 "\033[39m"}
+  /BLACKLIST/ {print "\033[31m" $0 "\033[39m"}
+  /WHITELIST/ {print "\033[37m" $0 "\033[39m"}
+  /LOCAL-TRAFFIC/ {print "\033[36m" $0 "\033[39m"}'
+```
+
 ### Notes:
 + Currently configured for a POSTFIX/DOVECOT mail and LAMP server.
 + I have tried to keep this POSIX compliant based on shellcheck complaints.
