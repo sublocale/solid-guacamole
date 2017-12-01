@@ -1,8 +1,0 @@
-check_directory(){
-# Check if directory exists and make it if not
-
-    if [! -d "Directory" ]; then
-        mkdir -m 700 Directory
-    fi
-
-}
