@@ -35,8 +35,6 @@ echo
 #
 
 echo "sending blacklist ip's to oblivion"
-# Disabled the next line as it is now in a CRON job
-#/usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 $ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 
 #
@@ -45,11 +43,6 @@ echo "-------------"
 echo "WHITELIST"
 echo "-------------"
 echo
-#
-
-#
-## Load ipset whitelist. To be moved out of here and run like the blacklist.
-## Once loaded the ruleset will be loaded later into the WHITELIST chain.
 #
 
 echo "allowing whitelist ip's..."
