@@ -1,14 +1,11 @@
 #!/bin/bash
-# iptables single-host firewall configuration script
-# https://github.com/sublocale/solid-guacamole
+# iptables single-host firewall script
+#
 # -----------------------------------------------------------------------------
-# Sourced from all over, Portions and ideas from the following:
 # https://gist.github.com/jirutka/3742890
 # https://github.com/trick77/ipset-blacklist
 # https://making.pusher.com/per-ip-rate-limiting-with-iptables/#fnref:hashlimit-hashtable-mess
 # https://www.ossramblings.com/whitelisting-ipaddress-with-iptables-ipset
-
-## Commented so that in 6 months I remember what the hell I was doing
 
 # Define your command variables
 ipt4="/sbin/iptables"
@@ -22,14 +19,49 @@ echo "|   __|___| |_|_| |  |   __|_ _ ___ ___ ___ _____ ___| |___ ";
 echo "|__   | . | | | . |  |  |  | | | .'|  _| .'|     | . | | -_|";
 echo "|_____|___|_|_|___|  |_____|___|__,|___|__,|_|_|_|___|_|___|";
 echo "                                                            ";
+echo "-------------"
+echo "NETFILTER"
+echo "-------------"
+echo
 echo "Script to load our own custom iptables rules"
 
 #
+## Update and load ipeset blacklist
+## Blacklist is updated daily via a CRON job
+#
+
+#
 echo
-echo " -----------------"
-echo "[ CLEAN HOUSE     ]"
-echo " -----------------"
+echo "-------------"
+echo "BLACKLIST"
+echo "-------------"
 echo
+#
+
+echo "sending blacklist ip's to oblivion"
+# Disabled the next line as it is now in a CRON job
+#/usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+$ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
+
+#
+## Load ipset whitelist. To be moved out of here and run like the blacklist.
+## Once loaded the ruleset will be loaded later into the AUTH-TRAFFIC chain.
+#
+
+echo "allowing whitelist ip's..."
+$ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
+
+#$ipset create whitelist hash:net
+#$ipset flush whitelist
+#
+#$ipset add whitelist   50.68.250.0/24	# Home Shaw Network
+#$ipset add whitelist   50.68.242.0/24	# Home Shaw Network
+#$ipset add whitelist    96.49.62.0/24	# Office
+#$ipset add whitelist  173.244.44.0/24	# PIA Seattle
+#$ipset add whitelist 209.139.192.0/18	# BC Childrens Hospital
+
+#
+##
 #
 
 echo "flush all rules and delete all chains..."
@@ -39,41 +71,7 @@ $ipt4 -X
 echo "zero out all counters..."
 $ipt4 -Z
 
-## Update and load ipset lists
-## Blacklist and Whitelist updated daily via a CRON job
-##
-## 33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
-## 33 23 * * *      root /usr/local/sbin/update-whitelist.sh /etc/ipset-whitelist/ipset-whitelist.conf
-#
-
-#
-echo
-echo " -----------------"
-echo "[ LOAD BLACKLISTS ]"
-echo " -----------------"
-echo
-#
-
-echo "sending blacklist ip's to oblivion"
-$ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
-
-#
-echo
-echo " -----------------"
-echo "[ LOAD WHITELIST  ]"
-echo " -----------------"
-echo
-#
-
-echo "allowing whitelist ip's..."
-$ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
-
-echo " -----------------"
-echo "[ NETFILTER       ]"
-echo " -----------------"
-echo
-
-echo "set defaut policy to ACCEPT (under review)..."
+echo "Set defaut policy to accept (under review)..."
 $ipt4 -P INPUT ACCEPT
 $ipt4 -P FORWARD ACCEPT
 $ipt4 -P OUTPUT ACCEPT
@@ -99,14 +97,14 @@ $ipt4 -N f2b-sshd
 
 #
 echo
-echo " -----------------"
-echo "[ INPUT rules     ]"
-echo " -----------------"
+echo "-------------"
+echo "INPUT rules"
+echo "-------------"
 echo
 #
 
 echo "drop via ipset blacklist with syslog tag [BLACKLIST]..."
-$ipt4 -A INPUT -m set --match-set blacklist src -j BLACKLIST
+$ipt4 -A INPUT -m set --match-set blacklist src -j LOG_AND_DROP
 
 echo "allow Local loopback traffic..."
 $ipt4 -A INPUT -i lo -j ACCEPT
@@ -114,8 +112,8 @@ $ipt4 -A INPUT -i lo -j ACCEPT
 echo "allow Local AWS IP connections with syslog tag [LOCAL-TRAFFIC]..."
 $ipt4 -A INPUT -s 172.31.32.0/24 -p tcp -j LOCAL-TRAFFIC
 
-echo "allow authorized ip's via ipset with syslog tag [WHITELIST]..."
-$ipt4 -A INPUT -m set --match-set whitelist src -j WHITELIST
+echo "allow authorized ip's via ipset with syslog tag [AUTH-TRAFFIC]..."
+$ipt4 -A INPUT -m set --match-set whitelist src -j AUTH-TRAFFIC
 
 echo "set logging for all other traffic with syslog tag [NETFILTER]..."
 $ipt4 -A INPUT -m limit --limit 1/sec -j LOG --log-prefix "[NETFILTER]: "
@@ -124,7 +122,7 @@ echo "manually setup Fail2ban rules..."
 $ipt4 -A INPUT -p tcp -m tcp --dport 80 -j f2b-HTTP
 $ipt4 -A INPUT -p tcp -m multiport --dports 0:65535 -j f2b-l2tp-psk
 $ipt4 -A INPUT -p tcp -m multiport --dports 80,443 -j f2b-owncloud
-$ipt4 -A INPUT -p tcp -m tcp --dport 22 -j f2b-sshd
+$ipt4 -A INPUT -p tcp -j f2b-sshd
 $ipt4 -A INPUT -p tcp -m multiport --dports 80,443 -j f2b-auth
 $ipt4 -A INPUT -p tcp -m multiport --dports 110,995,143,993 -j f2b-dovecot-pop3imap
 $ipt4 -A INPUT -p tcp -m multiport --dports 25,465,587,220,993,110,995 -j f2b-postfix-sasl
@@ -149,17 +147,15 @@ $ipt4 -A INPUT -p icmp -m icmp --icmp-type 8 -m conntrack --ctstate NEW -j ACCEP
 
 #
 echo
-echo " -----------------"
-echo "[ FORWARD rules   ]"
-echo " -----------------"
+echo "-------------"
+echo "FORWARD rules"
+echo "-------------"
 echo
 #
 
 echo "allow VPN existing connections..."
 $ipt4 -A FORWARD -m limit --limit 1/sec -j LOG --log-prefix "[NETFILTER]: "
 $ipt4 -A FORWARD -m conntrack --ctstate INVALID -j DROP
-
-echo "more VPN voodoo..."
 $ipt4 -A FORWARD -i eth0 -o ppp+ -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 $ipt4 -A FORWARD -i ppp+ -o eth0 -j ACCEPT
 $ipt4 -A FORWARD -s 192.168.42.0/24 -d 192.168.42.0/24 -i ppp+ -o ppp+ -j ACCEPT
@@ -171,21 +167,21 @@ $ipt4 -A FORWARD -j DROP
 
 #
 echo
-echo " -----------------"
-echo "[ CHAIN ACTIONS   ]"
-echo " -----------------"
+echo "-------------"
+echo "CHAIN ACTIONS"
+echo "-------------"
 echo
 #
 
 # Custom Chain Rule actions
 
 echo "DROP Blacklist ip's..."
-$ipt4 -A BLACKLIST -j LOG --log-prefix "[BLACKLIST]: " --log-level 4
-$ipt4 -A BLACKLIST -j DROP
+$ipt4 -A LOG_AND_DROP -j LOG --log-prefix "[BLACKLIST]: " --log-level 4
+$ipt4 -A LOG_AND_DROP -j DROP
 
-echo"Rate Limit allowed traffic..."
+echo "Rate Limit allowed traffic..."
 $ipt4 -A RATE-LIMIT -m hashlimit --hashlimit-mode srcip --hashlimit-upto 50/sec --hashlimit-burst 20 --hashlimit-name conn_rate_limit -j ACCEPT
-$ipt4 -A RATE-LIMIT -m limit --limit 1/sec -j LOG --log-prefix "[RATE-LIMIT]: "
+$ipt4 -A RATE-LIMIT -m limit --limit 1/sec -j LOG --log-prefix "[IPTables-Rejected]: "
 $ipt4 -A RATE-LIMIT -j REJECT --reject-with icmp-port-unreachable
 
 echo "Log local traffic 1 entry per minute..."
@@ -193,14 +189,14 @@ $ipt4 -A LOCAL-TRAFFIC -m limit --limit 1/min -j LOG --log-prefix "[LOCAL-TRAFFI
 $ipt4 -A LOCAL-TRAFFIC -j ACCEPT
 
 echo "Log authorized traffic 1 entry per minute..."
-$ipt4 -A WHITELIST -m limit --limit 1/min -j LOG --log-prefix "[WHITELIST]: " --log-level 1
-$ipt4 -A WHITELIST -j ACCEPT
+$ipt4 -A AUTH-TRAFFIC -m limit --limit 1/min -j LOG --log-prefix "[AUTH-TRAFFIC]: " --log-level 1
+$ipt4 -A AUTH-TRAFFIC -j ACCEPT
 
 #
 echo
-echo " -----------------"
-echo "[ RETURN ACTION   ]"
-echo " -----------------"
+echo "-------------"
+echo "RETURN ACTION"
+echo "-------------"
 echo
 #
 
@@ -219,17 +215,17 @@ $ipt4 -A f2b-sshd -j RETURN
 
 # Display current rules for testing
 echo
-echo " -----------------"
-echo "[ ACTIVE RULES    ]"
-echo " -----------------"
+echo "-------------"
+echo "ACTIVE RULES"
+echo "-------------"
 echo
 iptables -S
 
 #
 echo
-echo " -----------------"
-echo "[ DONE !          ]"
-echo " -----------------"
+echo "-------------"
+echo "DONE"
+echo "-------------"
 echo
 #
 
