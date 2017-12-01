@@ -56,6 +56,7 @@ echo "allowing whitelist ip's..."
 $ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
 
 #
+echo
 echo "-------------"
 echo "NETFILTER"
 echo "-------------"
