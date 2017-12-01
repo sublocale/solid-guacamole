@@ -49,7 +49,7 @@ echo
 
 #
 ## Load ipset whitelist. To be moved out of here and run like the blacklist.
-## Once loaded the ruleset will be loaded later into the AUTH-TRAFFIC chain.
+## Once loaded the ruleset will be loaded later into the WHITELIST chain.
 #
 
 echo "allowing whitelist ip's..."
@@ -76,10 +76,10 @@ $ipt4 -P FORWARD ACCEPT
 $ipt4 -P OUTPUT ACCEPT
 
 echo "define our custom chains..."
-$ipt4 -N LOG_AND_DROP
+$ipt4 -N BLACKLIST
 $ipt4 -N RATE-LIMIT
 $ipt4 -N LOCAL-TRAFFIC
-$ipt4 -N AUTH-TRAFFIC
+$ipt4 -N WHITELIST
 
 echo "manually set fail2ban chains..."
 $ipt4 -N f2b-HTTP
@@ -103,7 +103,7 @@ echo
 #
 
 echo "drop via ipset blacklist with syslog tag [BLACKLIST]..."
-$ipt4 -A INPUT -m set --match-set blacklist src -j LOG_AND_DROP
+$ipt4 -A INPUT -m set --match-set blacklist src -j BLACKLIST
 
 echo "allow Local loopback traffic..."
 $ipt4 -A INPUT -i lo -j ACCEPT
@@ -111,8 +111,8 @@ $ipt4 -A INPUT -i lo -j ACCEPT
 echo "allow Local AWS IP connections with syslog tag [LOCAL-TRAFFIC]..."
 $ipt4 -A INPUT -s 172.31.32.0/24 -p tcp -j LOCAL-TRAFFIC
 
-echo "allow authorized ip's via ipset with syslog tag [AUTH-TRAFFIC]..."
-$ipt4 -A INPUT -m set --match-set whitelist src -j AUTH-TRAFFIC
+echo "allow authorized ip's via ipset with syslog tag [WHITELIST]..."
+$ipt4 -A INPUT -m set --match-set whitelist src -j WHITELIST
 
 echo "set logging for all other traffic with syslog tag [NETFILTER]..."
 $ipt4 -A INPUT -m limit --limit 1/sec -j LOG --log-prefix "[NETFILTER]: "
@@ -175,8 +175,8 @@ echo
 # Custom Chain Rule actions
 
 echo "DROP Blacklist ip's..."
-$ipt4 -A LOG_AND_DROP -j LOG --log-prefix "[BLACKLIST]: " --log-level 4
-$ipt4 -A LOG_AND_DROP -j DROP
+$ipt4 -A BLACKLIST -j LOG --log-prefix "[BLACKLIST]: " --log-level 4
+$ipt4 -A BLACKLIST -j DROP
 
 echo "Rate Limit allowed traffic..."
 $ipt4 -A RATE-LIMIT -m hashlimit --hashlimit-mode srcip --hashlimit-upto 50/sec --hashlimit-burst 20 --hashlimit-name conn_rate_limit -j ACCEPT
@@ -188,8 +188,8 @@ $ipt4 -A LOCAL-TRAFFIC -m limit --limit 1/min -j LOG --log-prefix "[LOCAL-TRAFFI
 $ipt4 -A LOCAL-TRAFFIC -j ACCEPT
 
 echo "Log authorized traffic 1 entry per minute..."
-$ipt4 -A AUTH-TRAFFIC -m limit --limit 1/min -j LOG --log-prefix "[AUTH-TRAFFIC]: " --log-level 1
-$ipt4 -A AUTH-TRAFFIC -j ACCEPT
+$ipt4 -A WHITELIST -m limit --limit 1/min -j LOG --log-prefix "[WHITELIST]: " --log-level 4
+$ipt4 -A WHITELIST -j ACCEPT
 
 #
 echo
