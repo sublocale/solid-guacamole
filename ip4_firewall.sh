@@ -22,6 +22,17 @@ echo "                                                            ";
 echo "Script to load our own custom iptables rules"
 
 #
+echo
+echo "-------------"
+echo "WHITELIST"
+echo "-------------"
+echo
+#
+
+echo "allowing whitelist ip's..."
+$ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
+
+#
 ## Update and load ipeset blacklist
 ## Blacklist is updated daily via a CRON job
 #
@@ -36,17 +47,6 @@ echo
 
 echo "sending blacklist ip's to oblivion"
 $ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
-
-#
-echo
-echo "-------------"
-echo "WHITELIST"
-echo "-------------"
-echo
-#
-
-echo "allowing whitelist ip's..."
-$ipset restore < /etc/ipset-whitelist/ip-whitelist.restore
 
 #
 echo
@@ -69,10 +69,10 @@ $ipt4 -P FORWARD ACCEPT
 $ipt4 -P OUTPUT ACCEPT
 
 echo "define our custom chains..."
+$ipt4 -N WHITELIST
 $ipt4 -N BLACKLIST
 $ipt4 -N RATE-LIMIT
 $ipt4 -N LOCAL-TRAFFIC
-$ipt4 -N WHITELIST
 
 echo "manually set fail2ban chains..."
 $ipt4 -N f2b-HTTP
@@ -95,6 +95,9 @@ echo "-------------"
 echo
 #
 
+echo "allow authorized ip's via ipset with syslog tag [WHITELIST]..."
+$ipt4 -A INPUT -m set --match-set whitelist src -j WHITELIST
+
 echo "drop via ipset blacklist with syslog tag [BLACKLIST]..."
 $ipt4 -A INPUT -m set --match-set blacklist src -j BLACKLIST
 
@@ -103,9 +106,6 @@ $ipt4 -A INPUT -i lo -j ACCEPT
 
 echo "allow Local AWS IP connections with syslog tag [LOCAL-TRAFFIC]..."
 $ipt4 -A INPUT -s 172.31.32.0/24 -p tcp -j LOCAL-TRAFFIC
-
-echo "allow authorized ip's via ipset with syslog tag [WHITELIST]..."
-$ipt4 -A INPUT -m set --match-set whitelist src -j WHITELIST
 
 echo "set logging for all other traffic with syslog tag [NETFILTER]..."
 $ipt4 -A INPUT -m limit --limit 1/sec -j LOG --log-prefix "[NETFILTER]: "
@@ -167,6 +167,10 @@ echo
 
 # Custom Chain Rule actions
 
+echo "Log authorized traffic 1 entry per minute..."
+$ipt4 -A WHITELIST -m limit --limit 1/min -j LOG --log-prefix "[WHITELIST]: " --log-level 4
+$ipt4 -A WHITELIST -j ACCEPT
+
 echo "DROP Blacklist ip's..."
 $ipt4 -A BLACKLIST -j LOG --log-prefix "[BLACKLIST]: " --log-level 4
 $ipt4 -A BLACKLIST -j DROP
@@ -179,10 +183,6 @@ $ipt4 -A RATE-LIMIT -j REJECT --reject-with icmp-port-unreachable
 echo "Log local traffic 1 entry per minute..."
 $ipt4 -A LOCAL-TRAFFIC -m limit --limit 1/min -j LOG --log-prefix "[LOCAL-TRAFFIC]: " --log-level 1
 $ipt4 -A LOCAL-TRAFFIC -j ACCEPT
-
-echo "Log authorized traffic 1 entry per minute..."
-$ipt4 -A WHITELIST -m limit --limit 1/min -j LOG --log-prefix "[WHITELIST]: " --log-level 4
-$ipt4 -A WHITELIST -j ACCEPT
 
 #
 echo
